@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SeuImóvel - Login e Cadastro</title>
+  <link rel="stylesheet" href="styles.css">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet"/>
+  <style>
+    /* Estilos mantidos conforme seu código original */
+    .esqueci-senha {
+      margin-top: 10px;
+      font-size: 14px;
+      color: #7f8c8d;
+      cursor: pointer;
+      text-align: right;
+    }
+
+    .esqueci-senha:hover {
+      color: #34495e;
+      text-decoration: underline;
+    }
+
+    .bottom-icons {
+      display: flex;
+      justify-content: space-around;
+      margin-top: 3rem;
+      opacity: 0.7;
+    }
+
+    .error-message {
+      color: #e74c3c;
+      margin: 10px 0;
+      font-size: 14px;
+    }
+
+    .success-message {
+      color: #2ecc71;
+      margin: 10px 0;
+      font-size: 14px;
+    }
+
+    .loading {
+      border: 2px solid #f3f3f3;
+      border-top: 2px solid #3498db;
+      border-radius: 50%;
+      width: 12px;
+      height: 12px;
+      animation: spin 1s linear infinite;
+      display: inline-block;
+      margin-right: 5px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .connection-error {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      background: #e74c3c;
+      color: white;
+      padding: 15px;
+      border-radius: 5px;
+      z-index: 1000;
+      animation: slideIn 0.5s ease-out;
+    }
+
+    @keyframes slideIn {
+      from { transform: translateX(-100%); }
+      to { transform: translateX(0); }
+    }
+
+    /* Estilos para o popup de recuperação de senha */
+    .popup-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0, 0, 0, 0.5);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .popup-overlay.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .popup-content {
+      background-color: white;
+      padding: 30px;
+      border-radius: 8px;
+      width: 90%;
+      max-width: 400px;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+      transform: scale(0.8);
+      transition: transform 0.3s ease;
+    }
+
+    .popup-overlay.active .popup-content {
+      transform: scale(1);
+    }
+
+    .popup-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .popup-title {
+      font-size: 1.5rem;
+      color: #2c3e50;
+      margin: 0;
+    }
+
+    .close-popup {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+      color: #7f8c8d;
+    }
+
+    .close-popup:hover {
+      color: #34495e;
+    }
+
+    .popup-form {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .popup-form label {
+      margin-bottom: 8px;
+      color: #2c3e50;
+    }
+
+    .popup-form input {
+      padding: 10px;
+      margin-bottom: 15px;
+      border: 1px solid #bdc3c7;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+
+    .popup-form button {
+      padding: 12px;
+      background-color: #3498db;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+      transition: background-color 0.3s;
+    }
+
+    .popup-form button:hover {
+      background-color: #2980b9;
+    }
+
+    .popup-message {
+      margin-top: 15px;
+      text-align: center;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+<div class="left">
+  <div class="overlay">
+    <div class="logo">
+      <img src="https://img.icons8.com/ios-filled/100/000000/home.png" alt="Logo" />
+      <div class="logo-text">SEUIMÓVEL</div>
+    </div>
+    <h2></h2>
+    <p></p>
+  </div>
+</div>
+
+<!-- LOGIN -->
+<div class="right active" id="loginSection">
+  <div class="user-icon">
+    <img src="https://img.icons8.com/ios-filled/50/2c3e50/user.png" alt="User" />
+  </div>
+
+  <label for="usuario">Email:</label>
+  <input type="email" id="usuario" name="usuario" placeholder="seu@email.com" />
+
+  <label for="senha">Senha:</label>
+  <input type="password" id="senha" name="senha" placeholder="Sua senha" />
+
+  <div class="esqueci-senha" onclick="abrirPopup()">Esqueci minha senha</div>
+
+  <div id="loginError" class="error-message"></div>
+
+  <button class="btn" id="loginBtn" onclick="logar()">ENTRAR</button>
+  <button class="btn" onclick="mostrarCadastro()">CRIAR CONTA</button>
+
+  <div class="bottom-icons">
+    <img src="https://img.icons8.com/ios-filled/50/ffffff/sun.png" alt="Sol" />
+    <img src="https://img.icons8.com/ios-filled/50/ffffff/cloud.png" alt="Nuvem" />
+    <img src="https://img.icons8.com/ios-filled/50/ffffff/home.png" alt="Casa" />
+  </div>
+</div>
+
+<!-- CADASTRO -->
+<div class="right" id="cadastroSection">
+  <div class="user-icon">
+    <img src="https://img.icons8.com/ios-filled/50/2c3e50/add-user-male.png" alt="Cadastro" />
+  </div>
+
+  <label for="nome">Nome Completo:</label>
+  <input type="text" id="nome" name="nome" placeholder="Seu nome completo" />
+
+  <label for="email">Email:</label>
+  <input type="email" id="email" name="email" placeholder="seu@email.com" />
+
+  <label for="novaSenha">Senha:</label>
+  <input type="password" id="novaSenha" name="novaSenha" placeholder="Mínimo 6 caracteres" />
+
+  <label for="tipoUsuario">Tipo de usuário:</label>
+  <select id="tipoUsuario" name="tipoUsuario">
+    <option value="imobiliario">Imobiliário</option>
+    <option value="autonomo">Autônomo</option>
+  </select>
+
+  <div id="cadastroError" class="error-message"></div>
+  <div id="cadastroSuccess" class="success-message"></div>
+
+  <button class="btn" id="cadastroBtn" onclick="cadastrar()">CRIAR CONTA</button>
+  <button class="btn" onclick="voltarLogin()">VOLTAR</button>
+</div>
+
+<!-- POPUP DE RECUPERAÇÃO DE SENHA -->
+<div class="popup-overlay" id="recoveryPopup">
+  <div class="popup-content">
+    <div class="popup-header">
+      <h3 class="popup-title">Recuperar Senha</h3>
+      <button class="close-popup" onclick="fecharPopup()">&times;</button>
+    </div>
+    <form class="popup-form" id="recoveryForm">
+      <label for="recoveryEmail">Digite seu email cadastrado:</label>
+      <input type="email" id="recoveryEmail" name="recoveryEmail" placeholder="seu@email.com" required />
+
+      <button type="submit" id="recoveryBtn">ENVIAR LINK DE RECUPERAÇÃO</button>
+
+      <div id="recoveryMessage" class="popup-message"></div>
+    </form>
+  </div>
+</div>
+
+<script>
+  // Configuração da API
+  const API_BASE_URL = 'http://localhost:8080/api';
+  const ENDPOINTS = {
+    LOGIN: '/login',
+    REGISTER: '/usuarios',
+    RECOVERY: '/password-recovery',
+    TEST: '/test'
+  };
+
+  // Elementos do DOM
+  const DOM = {
+    loginSection: document.getElementById('loginSection'),
+    cadastroSection: document.getElementById('cadastroSection'),
+    recoveryPopup: document.getElementById('recoveryPopup'),
+    loginError: document.getElementById('loginError'),
+    cadastroError: document.getElementById('cadastroError'),
+    cadastroSuccess: document.getElementById('cadastroSuccess'),
+    recoveryMessage: document.getElementById('recoveryMessage'),
+    loginForm: {
+      email: document.getElementById('usuario'),
+      password: document.getElementById('senha')
+    },
+    registerForm: {
+      nome: document.getElementById('nome'),
+      email: document.getElementById('email'),
+      password: document.getElementById('novaSenha'),
+      tipo: document.getElementById('tipoUsuario')
+    },
+    recoveryForm: {
+      form: document.getElementById('recoveryForm'),
+      email: document.getElementById('recoveryEmail'),
+      btn: document.getElementById('recoveryBtn')
+    }
+  };
+
+  // Funções de navegação
+  function mostrarCadastro() {
+    DOM.loginSection.classList.remove('active');
+    DOM.cadastroSection.classList.add('active');
+    limparMensagens();
+  }
+
+  function voltarLogin() {
+    DOM.cadastroSection.classList.remove('active');
+    DOM.loginSection.classList.add('active');
+    limparMensagens();
+  }
+
+  function abrirPopup() {
+    DOM.recoveryPopup.classList.add('active');
+    DOM.recoveryForm.email.value = DOM.loginForm.email.value.trim();
+  }
+
+  function fecharPopup() {
+    DOM.recoveryPopup.classList.remove('active');
+    DOM.recoveryMessage.textContent = '';
+    DOM.recoveryForm.email.value = '';
+  }
+
+  function limparMensagens() {
+    DOM.loginError.textContent = '';
+    DOM.cadastroError.textContent = '';
+    DOM.cadastroSuccess.textContent = '';
+  }
+
+  // Funções de loading
+  function mostrarLoading(btnId, texto = '') {
+    const btn = document.getElementById(btnId);
+    btn.disabled = true;
+    btn.innerHTML = `<span class="loading"></span>${texto || 'Processando...'}`;
+  }
+
+  function esconderLoading(btnId, textoOriginal) {
+    const btn = document.getElementById(btnId);
+    btn.disabled = false;
+    btn.innerHTML = textoOriginal;
+  }
+
+  // Validações
+  function isValidEmail(email) {
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return re.test(email);
+  }
+
+  // Funções de API
+  async function makeRequest(endpoint, method, body = null) {
+    try {
+      const config = {
+        method,
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        mode: 'cors'
+      };
+
+      if (body) config.body = JSON.stringify(body);
+
+      if (!navigator.onLine) {
+        throw new Error('Você está offline. Verifique sua conexão com a internet.');
+      }
+
+      const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
+
+      if (!response) {
+        throw new Error('Nenhuma resposta do servidor');
+      }
+
+      const data = await response.json().catch(() => {
+        throw new Error('Resposta do servidor inválida');
+      });
+
+      if (!response.ok) {
+        throw new Error(data.message || `Erro ${response.status}`);
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Erro na requisição:', error);
+      showConnectionError(error.message || 'Erro ao conectar com o servidor');
+      throw error;
+    }
+  }
+
+  function showConnectionError(message = 'Erro de conexão com o servidor. Tente novamente.') {
+    const existingError = document.querySelector('.connection-error');
+    if (existingError) {
+      existingError.textContent = message;
+      return;
+    }
+
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'connection-error';
+    errorDiv.textContent = message;
+    document.body.appendChild(errorDiv);
+
+    setTimeout(() => {
+      errorDiv.style.animation = 'slideIn 0.5s reverse';
+      setTimeout(() => errorDiv.remove(), 500);
+    }, 5000);
+  }
+
+  // Funções principais
+  async function logar() {
+    const { email, password } = DOM.loginForm;
+    const emailValue = email.value.trim();
+    const passwordValue = password.value;
+
+    if (!emailValue || !passwordValue) {
+      DOM.loginError.textContent = 'Preencha email e senha!';
+      return;
+    }
+
+    if (!isValidEmail(emailValue)) {
+      DOM.loginError.textContent = 'Email inválido!';
+      return;
+    }
+
+    mostrarLoading('loginBtn', 'Entrando...');
+
+    try {
+      const response = await fetch(`${API_BASE_URL}${ENDPOINTS.LOGIN}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          email: emailValue,
+          password: passwordValue
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Credenciais inválidas');
+      }
+
+      const data = await response.json();
+      
+      // Armazena o token e informações do usuário
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify({
+        id: data.user.id,
+        nome: data.user.nome,
+        email: data.user.email,
+        tipo_usuario: data.user.tipo_usuario
+      }));
+
+      window.location.href = 'home.html';
+    } catch (error) {
+      DOM.loginError.textContent = error.message || 'Erro ao fazer login';
+    } finally {
+      esconderLoading('loginBtn', 'ENTRAR');
+    }
+  }
+
+  async function cadastrar() {
+    const { nome, email, password, tipo } = DOM.registerForm;
+    const nomeValue = nome.value.trim();
+    const emailValue = email.value.trim();
+    const passwordValue = password.value;
+    const tipoValue = tipo.value;
+
+    if (!nomeValue || !emailValue || !passwordValue || !tipoValue) {
+      DOM.cadastroError.textContent = 'Preencha todos os campos!';
+      return;
+    }
+
+    if (passwordValue.length < 6) {
+      DOM.cadastroError.textContent = 'Senha deve ter pelo menos 6 caracteres!';
+      return;
+    }
+
+    if (!isValidEmail(emailValue)) {
+      DOM.cadastroError.textContent = 'Email inválido!';
+      return;
+    }
+
+    mostrarLoading('cadastroBtn', 'Criando conta...');
+
+    try {
+      const response = await fetch(`${API_BASE_URL}${ENDPOINTS.REGISTER}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          nome: nomeValue,
+          email: emailValue,
+          password: passwordValue,
+          tipo_usuario: tipoValue
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Erro ao criar conta');
+      }
+
+      const data = await response.json();
+
+      DOM.cadastroSuccess.textContent = 'Conta criada com sucesso! Redirecionando...';
+
+      // Armazena o token e informações do usuário
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify({
+        id: data.user.id,
+        nome: data.user.nome,
+        email: data.user.email,
+        tipo_usuario: data.user.tipo_usuario
+      }));
+
+      setTimeout(() => {
+        window.location.href = 'home.html';
+      }, 1500);
+    } catch (error) {
+      console.error('Erro completo:', error);
+      DOM.cadastroError.textContent = error.message || 'Erro ao conectar com o servidor';
+    } finally {
+      esconderLoading('cadastroBtn', 'CRIAR CONTA');
+    }
+  }
+
+  // Função para enviar solicitação de recuperação de senha
+  async function enviarRecuperacaoSenha(event) {
+    event.preventDefault();
+
+    const emailValue = DOM.recoveryForm.email.value.trim();
+
+    if (!emailValue) {
+      DOM.recoveryMessage.textContent = 'Por favor, digite seu email';
+      DOM.recoveryMessage.style.color = '#e74c3c';
+      return;
+    }
+
+    if (!isValidEmail(emailValue)) {
+      DOM.recoveryMessage.textContent = 'Email inválido!';
+      DOM.recoveryMessage.style.color = '#e74c3c';
+      return;
+    }
+
+    mostrarLoading('recoveryBtn', 'Enviando...');
+
+    try {
+      const response = await fetch(`${API_BASE_URL}${ENDPOINTS.RECOVERY}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          email: emailValue
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Erro ao enviar solicitação');
+      }
+
+      DOM.recoveryMessage.textContent = 'Um link de recuperação foi enviado para seu email!';
+      DOM.recoveryMessage.style.color = '#2ecc71';
+
+      // Limpa o formulário após 3 segundos
+      setTimeout(() => {
+        DOM.recoveryForm.email.value = '';
+        DOM.recoveryMessage.textContent = '';
+        fecharPopup();
+      }, 3000);
+
+    } catch (error) {
+      DOM.recoveryMessage.textContent = error.message || 'Erro ao enviar solicitação de recuperação';
+      DOM.recoveryMessage.style.color = '#e74c3c';
+    } finally {
+      esconderLoading('recoveryBtn', 'ENVIAR LINK DE RECUPERAÇÃO');
+    }
+  }
+
+  // Inicialização
+  window.addEventListener('load', async () => {
+    // Verifica se já está logado
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        // Verifica se o token é válido
+        const response = await fetch(`${API_BASE_URL}/me`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (response.ok) {
+          window.location.href = 'home.html';
+        }
+      } catch (e) {
+        console.error('Erro ao verificar token:', e);
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+      }
+    }
+
+    // Adiciona evento de submit ao formulário de recuperação
+    DOM.recoveryForm.form.addEventListener('submit', enviarRecuperacaoSenha);
+  });
+</script>
+</body>
+</html>

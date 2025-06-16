@@ -1,0 +1,181 @@
+* {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Roboto', sans-serif;
+    }
+
+    body {
+      display: flex;
+      height: 100vh;
+    }
+
+    .left {
+      flex: 1;
+      background: linear-gradient(135deg,#000105 0%, #686769 100%);
+      position: relative;
+    }
+
+    .overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .logo {
+      background-color: rgba(255, 255, 255, 0.95);
+      border-radius: 50%;
+      width: 200px;
+      height: 200px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+    }
+
+    .logo img {
+      width: 80px;
+      height: 80px;
+    }
+
+    .logo-text {
+      font-size: 24px;
+      font-weight: bold;
+      margin-top: 10px;
+      color: #1e1f26;
+    }
+
+    .right {
+      width: 400px;
+      background-color: #1e1f26;
+      color: white;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 30px;
+      position: relative;
+    }
+
+    .right.active {
+      display: flex;
+    }
+
+    .user-icon {
+      background-color: white;
+      border-radius: 50%;
+      width: 100px;
+      height: 100px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 30px;
+    }
+
+    .user-icon img {
+      width: 50px;
+      height: 50px;
+    }
+
+    label {
+      align-self: flex-start;
+      margin-left: 40px;
+      margin-top: 10px;
+      margin-bottom: 5px;
+      font-weight: 500;
+    }
+
+    input[type="text"], input[type="password"], input[type="email"], select {
+      width: 80%;
+      padding: 12px;
+      margin-bottom: 15px;
+      border: none;
+      border-radius: 4px;
+      outline: none;
+      font-size: 14px;
+    }
+
+    select {
+      background-color: #fff;
+      color: #000;
+    }
+
+    .btn {
+      width: 80%;
+      padding: 12px;
+      margin: 10px 0;
+      background-color: transparent;
+      color: white;
+      border: 2px solid white;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 14px;
+      transition: all 0.3s ease;
+    }
+
+    .btn:hover {
+      background-color: white;
+      color: #1e1f26;
+      transform: translateY(-2px);
+    }
+
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .loading {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border: 2px solid #ffffff;
+      border-radius: 50%;
+      border-top-color: transparent;
+      animation: spin 1s ease-in-out infinite;
+      margin-right: 8px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .error-message {
+      color: #ff6b6b;
+      font-size: 12px;
+      margin-top: 10px;
+      margin-bottom: 10px;
+      text-align: center;
+    }
+
+    .success-message {
+      color: #51cf66;
+      font-size: 12px;
+      margin-top: -10px;
+      margin-bottom: 10px;
+      text-align: center;
+    }
+
+    .bottom-icons {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .bottom-icons img {
+      width: 35px;
+      height: 35px;
+      opacity: 0.7;
+    }

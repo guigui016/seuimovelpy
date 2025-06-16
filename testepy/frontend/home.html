@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="styleh.css">
+  <title>Seu Imóvel</title>
+</head>
+<body>
+<!-- Navbar -->
+<div class="navbar">
+  <img src="logo.png" alt="Logo" style="height: 40px;">
+  <h1 id="titulo">MEUS ANÚNCIOS</h1>
+  <div class="nav-buttons">
+    <button id="btnMeusAnuncios" class="active" onclick="mostrarPagina('meus')">Meus anúncios</button>
+    <button id="btnCatalogo" onclick="mostrarPagina('catalogo')">Catálogo</button>
+    <button id="btnNovoAnuncio" onclick="mostrarPagina('novo')">Novo anúncio</button>
+    <button id="btnLogout" onclick="logout()">Sair</button>
+  </div>
+  <input type="text" id="pesquisa" class="search-bar" placeholder="Buscar..." oninput="filtrarAnuncios()">
+</div>
+
+<!-- Conteúdo -->
+<div class="content">
+  <!-- Meus Anúncios -->
+  <div id="paginaMeus">
+    <div id="meusAnuncios" class="cards"></div>
+    <div id="meusVazio" class="empty-message hidden">
+      <h2>Você ainda não tem anúncios!</h2>
+    </div>
+  </div>
+
+  <!-- Catálogo -->
+  <div id="paginaCatalogo" class="hidden">
+    <div id="catalogo" class="cards"></div>
+    <div id="catalogoVazio" class="empty-message hidden">
+      <h2>Não há anúncios disponíveis!</h2>
+    </div>
+  </div>
+
+  <!-- Novo Anúncio -->
+  <div id="paginaNovo" class="hidden">
+    <div class="form-container">
+      <div class="form-left">
+        <div class="form-group">
+          <label>Categoria:</label>
+          <input type="text" id="categoria" required>
+        </div>
+        <div class="form-group">
+          <label>Endereço:</label>
+          <input type="text" id="endereco" required>
+        </div>
+        <div class="form-group">
+          <label>Metragem:</label>
+          <input type="text" id="metragem" required>
+        </div>
+        <div class="form-group">
+          <label>Cômodos:</label>
+          <input type="text" id="comodos" required>
+        </div>
+        <div class="form-group">
+          <label>Tipo (ap, casa, chácara):</label>
+          <input type="text" id="tipo" required>
+        </div>
+        <div class="form-group">
+          <label>Preço (R$):</label>
+          <input type="number" id="preco" step="0.01" required>
+        </div>
+        <div class="form-group">
+          <label>Status:</label>
+          <select id="status">
+            <option value="À venda">À venda</option>
+            <option value="Vendido">Vendido</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-right">
+        <div class="form-group">
+          <label>Foto do imóvel:</label>
+          <input type="file" id="foto" accept="image/*" onchange="previewImage(this)">
+          <div class="upload-preview" id="preview" style="width: 200px; height: 150px; border: 1px dashed #ddd; margin-top: 10px;"></div>
+        </div>
+
+        <div class="form-group">
+          <label>Observações e Contato:</label>
+          <textarea id="observacoes" rows="4"></textarea>
+        </div>
+
+        <button class="submit-button" onclick="salvarAnuncio()">ENVIAR</button>
+        <button id="btnCancelarEdicao" class="hidden" onclick="cancelarEdicao()" style="background-color: #e74c3c; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; margin-left: 10px;">CANCELAR</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Detalhes -->
+<div id="modal" class="modal hidden">
+  <div class="modal-content">
+    <button class="close-button" onclick="fecharModal()">X</button>
+    <img id="modalFoto" src="" alt="Foto imóvel" style="max-width: 100%; max-height: 300px; object-fit: cover;">
+    <h2 id="modalCategoria"></h2>
+    <p><strong>Endereço:</strong> <span id="modalEndereco"></span></p>
+    <p><strong>Metragem:</strong> <span id="modalMetragem"></span></p>
+    <p><strong>Cômodos:</strong> <span id="modalComodos"></span></p>
+    <p><strong>Tipo:</strong> <span id="modalTipo"></span></p>
+    <p><strong>Preço:</strong> R$ <span id="modalPreco"></span></p>
+    <p><strong>Status:</strong> <span id="modalStatus"></span></p>
+    <p><strong>Observações:</strong> <span id="modalObservacoes"></span></p>
+    <div class="edit-buttons" id="modalEditButtons" style="margin-top: 20px;"></div>
+  </div>
+</div>
+
+<!-- Loading -->
+<div id="loading" class="hidden" style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 1000; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+  <p>Carregando...</p>
+</div>
+
+<script>
+  // Configuração da API
+  const API_BASE_URL = 'http://localhost:8080/api';
+  let currentUser = null;
+  let anuncios = [];
+  let anuncioEditando = null;
+  let fotoAtual = null;
+
+  // Função para verificar autenticação
+  async function verificarAutenticacao() {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      window.location.href = 'index.html';
+      return false;
+    }
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/me`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Não autenticado');
+      }
+
+      const userData = await response.json();
+      currentUser = userData.data;
+      return true;
+    } catch (error) {
+      console.error('Erro ao verificar autenticação:', error);
+      logout();
+      return false;
+    }
+  }
+
+  // Função para requisições autenticadas
+  async function fetchWithAuth(url, options = {}) {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      throw new Error('Token não disponível - usuário não autenticado');
+    }
+
+    const headers = {
+      ...options.headers,
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    };
+
+    const response = await fetch(url, { ...options, headers });
+    
+    if (!response.ok) {
+      if (response.status === 401) {
+        logout();
+      }
+      const error = await response.json().catch(() => ({ message: 'Erro desconhecido' }));
+      throw new Error(error.message || `Erro ${response.status}`);
+    }
+    
+    return response.json();
+  }
+
+  // API Service
+  class ImovelAPI {
+    constructor() {
+      this.baseURL = API_BASE_URL;
+    }
+
+    async getCurrentUser() {
+      return fetchWithAuth(`${this.baseURL}/me`);
+    }
+
+    async criarAnuncio(anuncioData) {
+      return fetchWithAuth(`${this.baseURL}/anuncios`, {
+        method: 'POST',
+        body: JSON.stringify(anuncioData)
+      });
+    }
+
+    async atualizarAnuncio(id, anuncioData) {
+      return fetchWithAuth(`${this.baseURL}/anuncios/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(anuncioData)
+      });
+    }
+
+    async listarAnuncios() {
+      return fetchWithAuth(`${this.baseURL}/anuncios`);
+    }
+
+    async buscarAnunciosPorUsuario() {
+      return fetchWithAuth(`${this.baseURL}/meus-anuncios`);
+    }
+
+    async deletarAnuncio(id) {
+      return fetchWithAuth(`${this.baseURL}/anuncios/${id}`, {
+        method: 'DELETE'
+      });
+    }
+  }
+
+  const imovelAPI = new ImovelAPI();
+
+  // Funções auxiliares
+  function mostrarLoading() {
+    document.getElementById('loading').classList.remove('hidden');
+  }
+
+  function esconderLoading() {
+    document.getElementById('loading').classList.add('hidden');
+  }
+
+  function logout() {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    window.location.href = 'index.html';
+  }
+
+  // Função para mostrar páginas
+  async function mostrarPagina(pagina) {
+    try {
+      document.getElementById('paginaMeus').classList.add('hidden');
+      document.getElementById('paginaCatalogo').classList.add('hidden');
+      document.getElementById('paginaNovo').classList.add('hidden');
+
+      document.getElementById('btnMeusAnuncios').classList.remove('active');
+      document.getElementById('btnCatalogo').classList.remove('active');
+      document.getElementById('btnNovoAnuncio').classList.remove('active');
+
+      if (pagina === 'meus') {
+        document.getElementById('paginaMeus').classList.remove('hidden');
+        document.getElementById('btnMeusAnuncios').classList.add('active');
+        document.getElementById('titulo').innerText = "MEUS ANÚNCIOS";
+        await carregarMeusAnuncios();
+      } else if (pagina === 'catalogo') {
+        document.getElementById('paginaCatalogo').classList.remove('hidden');
+        document.getElementById('btnCatalogo').classList.add('active');
+        document.getElementById('titulo').innerText = "CATÁLOGO";
+        await carregarCatalogo();
+      } else if (pagina === 'novo') {
+        document.getElementById('paginaNovo').classList.remove('hidden');
+        document.getElementById('btnNovoAnuncio').classList.add('active');
+        document.getElementById('titulo').innerText = anuncioEditando !== null ? "EDITAR ANÚNCIO" : "NOVO ANÚNCIO";
+        document.getElementById('btnCancelarEdicao').classList.toggle('hidden', anuncioEditando === null);
+
+        if (anuncioEditando !== null) {
+          await carregarDadosEdicao();
+        } else {
+          limparFormulario();
+        }
+      }
+    } catch (error) {
+      console.error('Erro ao carregar página:', error);
+      alert('Erro: ' + error.message);
+      if (error.message.includes('Token') || error.message.includes('autenticado')) {
+        logout();
+      }
+    }
+  }
+
+  // Funções relacionadas a anúncios
+  async function carregarMeusAnuncios() {
+    try {
+      mostrarLoading();
+      const response = await imovelAPI.buscarAnunciosPorUsuario();
+      anuncios = response.data || [];
+      renderizarAnuncios('meusAnuncios', 'meusVazio', true);
+    } catch (error) {
+      console.error('Erro ao carregar meus anúncios:', error);
+      anuncios = [];
+      renderizarAnuncios('meusAnuncios', 'meusVazio', true);
+      throw error;
+    } finally {
+      esconderLoading();
+    }
+  }
+
+  async function carregarCatalogo() {
+    try {
+      mostrarLoading();
+      const response = await imovelAPI.listarAnuncios();
+      anuncios = response.data || [];
+      renderizarAnuncios('catalogo', 'catalogoVazio', false);
+    } catch (error) {
+      console.error('Erro ao carregar catálogo:', error);
+      anuncios = [];
+      renderizarAnuncios('catalogo', 'catalogoVazio', false);
+      throw error;
+    } finally {
+      esconderLoading();
+    }
+  }
+
+  function renderizarAnuncios(containerId, vazioId, meus) {
+    const container = document.getElementById(containerId);
+    const vazio = document.getElementById(vazioId);
+    container.innerHTML = '';
+
+    if (anuncios.length === 0) {
+      vazio.classList.remove('hidden');
+    } else {
+      vazio.classList.add('hidden');
+      anuncios.forEach((a) => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `
+          <img src="${a.imgURL || 'placeholder.jpg'}" style="width: 100%; height: 180px; object-fit: cover;">
+          <h3>${a.categoria}</h3>
+          <p>${a.tipo} - ${a.status}</p>
+          <p>R$ ${parseFloat(a.preco).toFixed(2)}</p>
+        `;
+        card.onclick = () => abrirDetalhes(a, meus);
+        container.appendChild(card);
+      });
+    }
+  }
+
+  function previewImage(input) {
+    const preview = document.getElementById('preview');
+    if (input.files && input.files[0]) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        preview.innerHTML = `<img src="${e.target.result}" style="max-width: 100%; max-height: 100%;">`;
+      };
+      reader.readAsDataURL(input.files[0]);
+    }
+  }
+
+  async function carregarDadosEdicao() {
+    try {
+      const anuncio = anuncios.find(a => a.id === anuncioEditando);
+      if (anuncio) {
+        document.getElementById('categoria').value = anuncio.categoria || '';
+        document.getElementById('endereco').value = anuncio.endereco || '';
+        document.getElementById('metragem').value = anuncio.metragem || '';
+        document.getElementById('comodos').value = anuncio.comodos || '';
+        document.getElementById('tipo').value = anuncio.tipo || '';
+        document.getElementById('preco').value = anuncio.preco || '';
+        document.getElementById('status').value = anuncio.status || 'À venda';
+        document.getElementById('observacoes').value = anuncio.observacoes || '';
+        fotoAtual = anuncio.imgURL;
+        if (fotoAtual) {
+          document.getElementById('preview').innerHTML = `<img src="${fotoAtual}" style="max-width: 100%; max-height: 100%;">`;
+        }
+      }
+    } catch (error) {
+      console.error('Erro ao carregar dados para edição:', error);
+      throw error;
+    }
+  }
+
+  function limparFormulario() {
+    document.getElementById('categoria').value = '';
+    document.getElementById('endereco').value = '';
+    document.getElementById('metragem').value = '';
+    document.getElementById('comodos').value = '';
+    document.getElementById('tipo').value = '';
+    document.getElementById('preco').value = '';
+    document.getElementById('status').value = 'À venda';
+    document.getElementById('observacoes').value = '';
+    document.getElementById('foto').value = '';
+    document.getElementById('preview').innerHTML = '';
+    fotoAtual = null;
+  }
+
+  function cancelarEdicao() {
+    anuncioEditando = null;
+    fotoAtual = null;
+    mostrarPagina('meus');
+  }
+
+  async function salvarAnuncio() {
+    const categoria = document.getElementById('categoria').value;
+    const endereco = document.getElementById('endereco').value;
+    const metragem = document.getElementById('metragem').value;
+    const comodos = document.getElementById('comodos').value;
+    const tipo = document.getElementById('tipo').value;
+    const preco = parseFloat(document.getElementById('preco').value);
+    const status = document.getElementById('status').value;
+    const observacoes = document.getElementById('observacoes').value;
+    const fotoInput = document.getElementById('foto');
+
+    if (!categoria || !endereco || !metragem || !comodos || !tipo || isNaN(preco)) {
+      alert('Preencha todos os campos obrigatórios corretamente!');
+      return;
+    }
+
+    mostrarLoading();
+
+    try {
+      let imgURL = fotoAtual;
+
+      // Se há nova foto, converter para base64
+      if (fotoInput.files.length > 0) {
+        imgURL = await new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onload = function(e) {
+            resolve(e.target.result);
+          };
+          reader.readAsDataURL(fotoInput.files[0]);
+        });
+      }
+
+      const dadosAnuncio = {
+        categoria,
+        endereco,
+        metragem,
+        comodos,
+        tipo,
+        preco,
+        status,
+        observacoes,
+        imgURL
+      };
+
+      if (anuncioEditando !== null) {
+        await imovelAPI.atualizarAnuncio(anuncioEditando, dadosAnuncio);
+        alert('Anúncio atualizado com sucesso!');
+      } else {
+        await imovelAPI.criarAnuncio(dadosAnuncio);
+        alert('Anúncio criado com sucesso!');
+      }
+
+      anuncioEditando = null;
+      fotoAtual = null;
+      await mostrarPagina('meus');
+
+    } catch (error) {
+      console.error('Erro ao salvar anúncio:', error);
+      alert('Erro ao salvar anúncio: ' + error.message);
+    } finally {
+      esconderLoading();
+    }
+  }
+
+  function abrirDetalhes(anuncio, meus) {
+    document.getElementById('modalFoto').src = anuncio.imgURL || 'placeholder.jpg';
+    document.getElementById('modalCategoria').innerText = anuncio.categoria;
+    document.getElementById('modalEndereco').innerText = anuncio.endereco;
+    document.getElementById('modalMetragem').innerText = anuncio.metragem;
+    document.getElementById('modalComodos').innerText = anuncio.comodos;
+    document.getElementById('modalTipo').innerText = anuncio.tipo;
+    document.getElementById('modalPreco').innerText = parseFloat(anuncio.preco).toFixed(2);
+    document.getElementById('modalStatus').innerText = anuncio.status;
+    document.getElementById('modalObservacoes').innerText = anuncio.observacoes || '';
+
+    const editButtons = document.getElementById('modalEditButtons');
+    editButtons.innerHTML = '';
+
+    if (meus) {
+      const btnEditar = document.createElement('button');
+      btnEditar.innerText = 'Editar';
+      btnEditar.style.backgroundColor = '#3498db';
+      btnEditar.style.color = 'white';
+      btnEditar.style.padding = '8px 15px';
+      btnEditar.style.border = 'none';
+      btnEditar.style.borderRadius = '4px';
+      btnEditar.style.cursor = 'pointer';
+      btnEditar.style.marginRight = '10px';
+      btnEditar.onclick = () => {
+        anuncioEditando = anuncio.id;
+        mostrarPagina('novo');
+        fecharModal();
+      };
+
+      const btnExcluir = document.createElement('button');
+      btnExcluir.innerText = 'Excluir';
+      btnExcluir.style.backgroundColor = '#e74c3c';
+      btnExcluir.style.color = 'white';
+      btnExcluir.style.padding = '8px 15px';
+      btnExcluir.style.border = 'none';
+      btnExcluir.style.borderRadius = '4px';
+      btnExcluir.style.cursor = 'pointer';
+      btnExcluir.onclick = async () => {
+        if (confirm('Tem certeza que deseja excluir este anúncio?')) {
+          try {
+            mostrarLoading();
+            await imovelAPI.deletarAnuncio(anuncio.id);
+            alert('Anúncio excluído com sucesso!');
+            await carregarMeusAnuncios();
+            fecharModal();
+          } catch (error) {
+            console.error('Erro ao excluir anúncio:', error);
+            alert('Erro ao excluir anúncio: ' + error.message);
+          } finally {
+            esconderLoading();
+          }
+        }
+      };
+
+      editButtons.appendChild(btnEditar);
+      editButtons.appendChild(btnExcluir);
+    }
+
+    document.getElementById('modal').classList.remove('hidden');
+  }
+
+  function fecharModal() {
+    document.getElementById('modal').classList.add('hidden');
+  }
+
+  function filtrarAnuncios() {
+    const termo = document.getElementById('pesquisa').value.toLowerCase();
+    const cards = document.querySelectorAll('.card');
+
+    cards.forEach(card => {
+      const textoCard = card.textContent.toLowerCase();
+      card.style.display = textoCard.includes(termo) ? 'block' : 'none';
+    });
+  }
+
+  // Inicialização
+  window.onload = async function() {
+    try {
+      mostrarLoading();
+      
+      // Verifica autenticação antes de carregar a página
+      const autenticado = await verificarAutenticacao();
+      if (!autenticado) {
+        return;
+      }
+      
+      await mostrarPagina('meus');
+    } catch (error) {
+      console.error('Erro ao carregar página:', error);
+      logout();
+    } finally {
+      esconderLoading();
+    }
+  };
+
+  // Atribui os event listeners corretamente após o carregamento
+  document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('btnMeusAnuncios').onclick = function() { mostrarPagina('meus'); };
+    document.getElementById('btnCatalogo').onclick = function() { mostrarPagina('catalogo'); };
+    document.getElementById('btnNovoAnuncio').onclick = function() { mostrarPagina('novo'); };
+    document.getElementById('btnLogout').onclick = logout;
+  });
+</script>
+</body>
+</html>
